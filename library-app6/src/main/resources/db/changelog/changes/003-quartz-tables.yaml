@@ -1,0 +1,656 @@
+# ЛР6 — схема Quartz 2.3.2 для PostgreSQL під керуванням Liquibase.
+# Джерело: org/quartz/impl/jdbcjobstore/tables_postgres.sql з quartz-2.3.2.jar, переписано в YAML 1:1.
+# Бінарні колонки: на PostgreSQL ОБОВ'ЯЗКОВО BYTEA (як у tables_postgres.sql). Узагальнений тип Liquibase BLOB
+# на PostgreSQL перетворюється на OID, і Quartz падає: "column job_data is of type oid but expression is of type bytea".
+# Тому тип задано явно для кожної СУБД через властивість ${quartz.binary.type} (H2 — для integration-тестів).
+# Spring Boot сам таблиці НЕ створює: spring.quartz.jdbc.initialize-schema=never.
+databaseChangeLog:
+  - property:
+      name: quartz.binary.type
+      value: BYTEA
+      dbms: postgresql
+  - property:
+      name: quartz.binary.type
+      value: BLOB
+      dbms: h2
+  - changeSet:
+      id: 003-quartz-tables
+      author: student
+      comment: Quartz JDBC job store tables (QRTZ_*)
+      changes:
+        - createTable:
+            tableName: qrtz_job_details
+            columns:
+              - column:
+                  name: sched_name
+                  type: VARCHAR(120)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: job_name
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: job_group
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: VARCHAR(250)
+              - column:
+                  name: job_class_name
+                  type: VARCHAR(250)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_durable
+                  type: BOOLEAN
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_nonconcurrent
+                  type: BOOLEAN
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_update_data
+                  type: BOOLEAN
+                  constraints:
+                    nullable: false
+              - column:
+                  name: requests_recovery
+                  type: BOOLEAN
+                  constraints:
+                    nullable: false
+              - column:
+                  name: job_data
+                  type: ${quartz.binary.type}
+        - addPrimaryKey:
+            tableName: qrtz_job_details
+            columnNames: sched_name, job_name, job_group
+            constraintName: pk_qrtz_job_details
+        - createTable:
+            tableName: qrtz_triggers
+            columns:
+              - column:
+                  name: sched_name
+                  type: VARCHAR(120)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: trigger_name
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: trigger_group
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: job_name
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: job_group
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: VARCHAR(250)
+              - column:
+                  name: next_fire_time
+                  type: BIGINT
+              - column:
+                  name: prev_fire_time
+                  type: BIGINT
+              - column:
+                  name: priority
+                  type: INTEGER
+              - column:
+                  name: trigger_state
+                  type: VARCHAR(16)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: trigger_type
+                  type: VARCHAR(8)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: start_time
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: end_time
+                  type: BIGINT
+              - column:
+                  name: calendar_name
+                  type: VARCHAR(200)
+              - column:
+                  name: misfire_instr
+                  type: SMALLINT
+              - column:
+                  name: job_data
+                  type: ${quartz.binary.type}
+        - addPrimaryKey:
+            tableName: qrtz_triggers
+            columnNames: sched_name, trigger_name, trigger_group
+            constraintName: pk_qrtz_triggers
+        - createTable:
+            tableName: qrtz_simple_triggers
+            columns:
+              - column:
+                  name: sched_name
+                  type: VARCHAR(120)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: trigger_name
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: trigger_group
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: repeat_count
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: repeat_interval
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: times_triggered
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: qrtz_simple_triggers
+            columnNames: sched_name, trigger_name, trigger_group
+            constraintName: pk_qrtz_simple_triggers
+        - createTable:
+            tableName: qrtz_cron_triggers
+            columns:
+              - column:
+                  name: sched_name
+                  type: VARCHAR(120)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: trigger_name
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: trigger_group
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: cron_expression
+                  type: VARCHAR(120)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: time_zone_id
+                  type: VARCHAR(80)
+        - addPrimaryKey:
+            tableName: qrtz_cron_triggers
+            columnNames: sched_name, trigger_name, trigger_group
+            constraintName: pk_qrtz_cron_triggers
+        - createTable:
+            tableName: qrtz_simprop_triggers
+            columns:
+              - column:
+                  name: sched_name
+                  type: VARCHAR(120)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: trigger_name
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: trigger_group
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: str_prop_1
+                  type: VARCHAR(512)
+              - column:
+                  name: str_prop_2
+                  type: VARCHAR(512)
+              - column:
+                  name: str_prop_3
+                  type: VARCHAR(512)
+              - column:
+                  name: int_prop_1
+                  type: INT
+              - column:
+                  name: int_prop_2
+                  type: INT
+              - column:
+                  name: long_prop_1
+                  type: BIGINT
+              - column:
+                  name: long_prop_2
+                  type: BIGINT
+              - column:
+                  name: dec_prop_1
+                  type: NUMERIC(13, 4)
+              - column:
+                  name: dec_prop_2
+                  type: NUMERIC(13, 4)
+              - column:
+                  name: bool_prop_1
+                  type: BOOLEAN
+              - column:
+                  name: bool_prop_2
+                  type: BOOLEAN
+        - addPrimaryKey:
+            tableName: qrtz_simprop_triggers
+            columnNames: sched_name, trigger_name, trigger_group
+            constraintName: pk_qrtz_simprop_triggers
+        - createTable:
+            tableName: qrtz_blob_triggers
+            columns:
+              - column:
+                  name: sched_name
+                  type: VARCHAR(120)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: trigger_name
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: trigger_group
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: blob_data
+                  type: ${quartz.binary.type}
+        - addPrimaryKey:
+            tableName: qrtz_blob_triggers
+            columnNames: sched_name, trigger_name, trigger_group
+            constraintName: pk_qrtz_blob_triggers
+        - createTable:
+            tableName: qrtz_calendars
+            columns:
+              - column:
+                  name: sched_name
+                  type: VARCHAR(120)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: calendar_name
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: calendar
+                  type: ${quartz.binary.type}
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: qrtz_calendars
+            columnNames: sched_name, calendar_name
+            constraintName: pk_qrtz_calendars
+        - createTable:
+            tableName: qrtz_paused_trigger_grps
+            columns:
+              - column:
+                  name: sched_name
+                  type: VARCHAR(120)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: trigger_group
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: qrtz_paused_trigger_grps
+            columnNames: sched_name, trigger_group
+            constraintName: pk_qrtz_paused_trigger_grps
+        - createTable:
+            tableName: qrtz_fired_triggers
+            columns:
+              - column:
+                  name: sched_name
+                  type: VARCHAR(120)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: entry_id
+                  type: VARCHAR(95)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: trigger_name
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: trigger_group
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: instance_name
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: fired_time
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: sched_time
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: priority
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: state
+                  type: VARCHAR(16)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: job_name
+                  type: VARCHAR(200)
+              - column:
+                  name: job_group
+                  type: VARCHAR(200)
+              - column:
+                  name: is_nonconcurrent
+                  type: BOOLEAN
+              - column:
+                  name: requests_recovery
+                  type: BOOLEAN
+        - addPrimaryKey:
+            tableName: qrtz_fired_triggers
+            columnNames: sched_name, entry_id
+            constraintName: pk_qrtz_fired_triggers
+        - createTable:
+            tableName: qrtz_scheduler_state
+            columns:
+              - column:
+                  name: sched_name
+                  type: VARCHAR(120)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: instance_name
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_checkin_time
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: checkin_interval
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: qrtz_scheduler_state
+            columnNames: sched_name, instance_name
+            constraintName: pk_qrtz_scheduler_state
+        - createTable:
+            tableName: qrtz_locks
+            columns:
+              - column:
+                  name: sched_name
+                  type: VARCHAR(120)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: lock_name
+                  type: VARCHAR(40)
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: qrtz_locks
+            columnNames: sched_name, lock_name
+            constraintName: pk_qrtz_locks
+        - addForeignKeyConstraint:
+            baseTableName: qrtz_triggers
+            baseColumnNames: sched_name, job_name, job_group
+            referencedTableName: qrtz_job_details
+            referencedColumnNames: sched_name, job_name, job_group
+            constraintName: fk_qrtz_triggers
+        - addForeignKeyConstraint:
+            baseTableName: qrtz_simple_triggers
+            baseColumnNames: sched_name, trigger_name, trigger_group
+            referencedTableName: qrtz_triggers
+            referencedColumnNames: sched_name, trigger_name, trigger_group
+            constraintName: fk_qrtz_simple_triggers
+        - addForeignKeyConstraint:
+            baseTableName: qrtz_cron_triggers
+            baseColumnNames: sched_name, trigger_name, trigger_group
+            referencedTableName: qrtz_triggers
+            referencedColumnNames: sched_name, trigger_name, trigger_group
+            constraintName: fk_qrtz_cron_triggers
+        - addForeignKeyConstraint:
+            baseTableName: qrtz_simprop_triggers
+            baseColumnNames: sched_name, trigger_name, trigger_group
+            referencedTableName: qrtz_triggers
+            referencedColumnNames: sched_name, trigger_name, trigger_group
+            constraintName: fk_qrtz_simprop_triggers
+        - addForeignKeyConstraint:
+            baseTableName: qrtz_blob_triggers
+            baseColumnNames: sched_name, trigger_name, trigger_group
+            referencedTableName: qrtz_triggers
+            referencedColumnNames: sched_name, trigger_name, trigger_group
+            constraintName: fk_qrtz_blob_triggers
+        - createIndex:
+            indexName: idx_qrtz_j_req_recovery
+            tableName: qrtz_job_details
+            columns:
+              - column:
+                  name: sched_name
+              - column:
+                  name: requests_recovery
+        - createIndex:
+            indexName: idx_qrtz_j_grp
+            tableName: qrtz_job_details
+            columns:
+              - column:
+                  name: sched_name
+              - column:
+                  name: job_group
+        - createIndex:
+            indexName: idx_qrtz_t_j
+            tableName: qrtz_triggers
+            columns:
+              - column:
+                  name: sched_name
+              - column:
+                  name: job_name
+              - column:
+                  name: job_group
+        - createIndex:
+            indexName: idx_qrtz_t_jg
+            tableName: qrtz_triggers
+            columns:
+              - column:
+                  name: sched_name
+              - column:
+                  name: job_group
+        - createIndex:
+            indexName: idx_qrtz_t_c
+            tableName: qrtz_triggers
+            columns:
+              - column:
+                  name: sched_name
+              - column:
+                  name: calendar_name
+        - createIndex:
+            indexName: idx_qrtz_t_g
+            tableName: qrtz_triggers
+            columns:
+              - column:
+                  name: sched_name
+              - column:
+                  name: trigger_group
+        - createIndex:
+            indexName: idx_qrtz_t_state
+            tableName: qrtz_triggers
+            columns:
+              - column:
+                  name: sched_name
+              - column:
+                  name: trigger_state
+        - createIndex:
+            indexName: idx_qrtz_t_n_state
+            tableName: qrtz_triggers
+            columns:
+              - column:
+                  name: sched_name
+              - column:
+                  name: trigger_name
+              - column:
+                  name: trigger_group
+              - column:
+                  name: trigger_state
+        - createIndex:
+            indexName: idx_qrtz_t_n_g_state
+            tableName: qrtz_triggers
+            columns:
+              - column:
+                  name: sched_name
+              - column:
+                  name: trigger_group
+              - column:
+                  name: trigger_state
+        - createIndex:
+            indexName: idx_qrtz_t_next_fire_time
+            tableName: qrtz_triggers
+            columns:
+              - column:
+                  name: sched_name
+              - column:
+                  name: next_fire_time
+        - createIndex:
+            indexName: idx_qrtz_t_nft_st
+            tableName: qrtz_triggers
+            columns:
+              - column:
+                  name: sched_name
+              - column:
+                  name: trigger_state
+              - column:
+                  name: next_fire_time
+        - createIndex:
+            indexName: idx_qrtz_t_nft_misfire
+            tableName: qrtz_triggers
+            columns:
+              - column:
+                  name: sched_name
+              - column:
+                  name: misfire_instr
+              - column:
+                  name: next_fire_time
+        - createIndex:
+            indexName: idx_qrtz_t_nft_st_misfire
+            tableName: qrtz_triggers
+            columns:
+              - column:
+                  name: sched_name
+              - column:
+                  name: misfire_instr
+              - column:
+                  name: next_fire_time
+              - column:
+                  name: trigger_state
+        - createIndex:
+            indexName: idx_qrtz_t_nft_st_misfire_grp
+            tableName: qrtz_triggers
+            columns:
+              - column:
+                  name: sched_name
+              - column:
+                  name: misfire_instr
+              - column:
+                  name: next_fire_time
+              - column:
+                  name: trigger_group
+              - column:
+                  name: trigger_state
+        - createIndex:
+            indexName: idx_qrtz_ft_trig_inst_name
+            tableName: qrtz_fired_triggers
+            columns:
+              - column:
+                  name: sched_name
+              - column:
+                  name: instance_name
+        - createIndex:
+            indexName: idx_qrtz_ft_inst_job_req_rcvry
+            tableName: qrtz_fired_triggers
+            columns:
+              - column:
+                  name: sched_name
+              - column:
+                  name: instance_name
+              - column:
+                  name: requests_recovery
+        - createIndex:
+            indexName: idx_qrtz_ft_j_g
+            tableName: qrtz_fired_triggers
+            columns:
+              - column:
+                  name: sched_name
+              - column:
+                  name: job_name
+              - column:
+                  name: job_group
+        - createIndex:
+            indexName: idx_qrtz_ft_jg
+            tableName: qrtz_fired_triggers
+            columns:
+              - column:
+                  name: sched_name
+              - column:
+                  name: job_group
+        - createIndex:
+            indexName: idx_qrtz_ft_t_g
+            tableName: qrtz_fired_triggers
+            columns:
+              - column:
+                  name: sched_name
+              - column:
+                  name: trigger_name
+              - column:
+                  name: trigger_group
+        - createIndex:
+            indexName: idx_qrtz_ft_tg
+            tableName: qrtz_fired_triggers
+            columns:
+              - column:
+                  name: sched_name
+              - column:
+                  name: trigger_group

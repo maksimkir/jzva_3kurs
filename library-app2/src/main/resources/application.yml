@@ -1,0 +1,37 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: library-app
+  datasource:
+    url: jdbc:postgresql://localhost:5433/library
+    username: library
+    password: library
+  jpa:
+    hibernate:
+      ddl-auto: validate        # схемою керує тільки Liquibase
+    open-in-view: false
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+  security:
+    oauth2:
+      client:
+        registration:
+          keycloak:
+            client-id: library-app
+            client-secret: library-secret
+            scope: openid,profile,email
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+        provider:
+          keycloak:
+            issuer-uri: http://localhost:8180/realms/library
+            user-name-attribute: preferred_username
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8180/realms/library
+
+logging:
+  level:
+    org.springframework.security: INFO

@@ -1,0 +1,76 @@
+# ЛР7
+#  docker compose up -d                 — лише інфраструктура: PostgreSQL (БД library + notification) і Keycloak;
+#                                         сервіси запускаються з IDE / mvn spring-boot:run (див. README)
+#  docker compose --profile apps up -d  — плюс усі три сервіси в контейнерах
+#                                         (спершу: mvn package -DskipTests, бо Dockerfile копіює готовий jar)
+services:
+  postgres:
+    image: postgres:16
+    container_name: library-postgres
+    environment:
+      POSTGRES_DB: library
+      POSTGRES_USER: library
+      POSTGRES_PASSWORD: library
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U library"]
+      interval: 5s
+      retries: 20
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    container_name: library-keycloak
+    command: start-dev --import-realm
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+    ports:
+      - "8180:8080"
+    volumes:
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+
+  book-info-service:
+    profiles: ["apps"]
+    build: ./book-info-service
+    image: library/book-info-service
+    ports:
+      - "8082:8082"
+
+  notification-service:
+    profiles: ["apps"]
+    build: ./notification-service
+    image: library/notification-service
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      INTERNAL_API_KEY: change-me-internal-key
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  catalog-service:
+    profiles: ["apps"]
+    build: ./catalog-service
+    image: library/catalog-service
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      INTERNAL_API_KEY: change-me-internal-key
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # Keycloak опубліковано на хості: 8180
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      notification-service:
+        condition: service_started
+      book-info-service:
+        condition: service_started
+
+volumes:
+  pgdata:

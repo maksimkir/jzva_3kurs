@@ -1,0 +1,26 @@
+# ЛР7 — профіль для контейнера (SPRING_PROFILES_ACTIVE=docker, див. docker-compose.yml, профіль apps).
+# Усередині контейнера "localhost" — це сам контейнер, тому:
+#  * браузер іде в Keycloak як і раніше: http://localhost:8180 (authorization-uri);
+#  * сервер ходить у Keycloak через хост: http://host.docker.internal:8180 (token / jwks / userinfo);
+#  * JWT від Postman (виданий на localhost:8180) перевіряється по ключах з jwk-set-uri і з iss = localhost:8180.
+spring:
+  datasource:
+    url: jdbc:postgresql://postgres:5432/library
+  security:
+    oauth2:
+      client:
+        provider:
+          keycloak:
+            authorization-uri: http://localhost:8180/realms/library/protocol/openid-connect/auth
+            token-uri: http://host.docker.internal:8180/realms/library/protocol/openid-connect/token
+            jwk-set-uri: http://host.docker.internal:8180/realms/library/protocol/openid-connect/certs
+            user-info-uri: http://host.docker.internal:8180/realms/library/protocol/openid-connect/userinfo
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://host.docker.internal:8180/realms/library/protocol/openid-connect/certs
+          issuer-uri: http://localhost:8180/realms/library   # лише перевірка поля iss (discovery не викликається)
+
+library:
+  services:
+    notification-url: http://notification-service:8081
+    book-info-url: http://book-info-service:8082

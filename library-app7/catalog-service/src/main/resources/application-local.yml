@@ -1,0 +1,11 @@
+# Профіль за замовчуванням (spring.profiles.default=local): застосунок на хості, Keycloak — http://localhost:8180
+spring:
+  security:
+    oauth2:
+      client:
+        provider:
+          keycloak:
+            issuer-uri: http://localhost:8180/realms/library
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8180/realms/library

@@ -1,0 +1,74 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: library-app
+  datasource:
+    url: jdbc:postgresql://localhost:5433/library
+    username: library
+    password: library
+  jpa:
+    hibernate:
+      ddl-auto: validate        # схемою керує тільки Liquibase
+    open-in-view: false
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+  # ЛР6 — Quartz з JDBC job store (розклад переживає рестарт)
+  quartz:
+    job-store-type: jdbc
+    jdbc:
+      initialize-schema: never      # таблиці QRTZ_* створює ЛИШЕ Liquibase (003-quartz-tables.yaml)
+    overwrite-existing-jobs: true   # при деплої завдання/тригери з QuartzJobsConfig ОНОВЛЮЮТЬ збережені (ті самі ключі -> без дублів)
+    wait-for-jobs-to-complete-on-shutdown: true
+    properties:
+      org.quartz.scheduler.instanceName: library-scheduler
+      org.quartz.scheduler.instanceId: AUTO
+      org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
+      org.quartz.jobStore.tablePrefix: QRTZ_
+      org.quartz.jobStore.useProperties: true   # JobDataMap — лише рядки, без Java-серіалізації в БД
+      org.quartz.jobStore.isClustered: true     # кілька інстансів не виконають одне спрацювання двічі
+      org.quartz.jobStore.misfireThreshold: 60000
+      org.quartz.threadPool.threadCount: 3
+  security:
+    oauth2:
+      client:
+        registration:
+          keycloak:
+            client-id: library-app
+            client-secret: library-secret
+            scope: openid,profile,email
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+        provider:
+          keycloak:
+            issuer-uri: http://localhost:8180/realms/library
+            user-name-attribute: preferred_username
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8180/realms/library
+
+logging:
+  level:
+    org.springframework.security: INFO
+
+# ЛР5 — асинхронна обробка
+library:
+  async:
+    core-size: 4              # базова кількість потоків
+    max-size: 8               # максимум потоків (додаються, коли черга заповнена)
+    queue-capacity: 50        # черга; далі -> TaskRejectedException -> 503 / пропуск листа
+    thread-name-prefix: library-async-
+    call-timeout-ms: 2000     # тайм-аут одного зовнішнього виклику
+    report-timeout-ms: 3000   # тайм-аут очікування всього звіту
+  simulation:
+    latency-ms: 1000          # «повільність» SMTP та зовнішніх API
+    mail-failure: false       # true -> SMTP «падає», видно роботу AsyncUncaughtExceptionHandler
+  notifications:
+    subscribers: readers@library.local
+  # ЛР6 — розклад
+  scheduling:
+    time-zone: Europe/Kyiv            # cron-тригери не залежать від пояса сервера
+    digest-interval-minutes: 60
+    daily-report-cron: "0 0 6 * * ?"      # щодня 06:00
+    weekly-report-cron: "0 0 7 ? * MON"   # щопонеділка 07:00

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8">
+  <title>Library</title>
+  <style>body{font-family:sans-serif;max-width:800px;margin:40px auto} a.btn,button{padding:6px 12px}</style>
+</head>
+<body>
+<h1>📚 Library</h1>
+<div sec:authorize="!isAuthenticated()">
+  <p>Ви не автентифіковані.</p>
+  <a class="btn" th:href="@{/oauth2/authorization/keycloak}">Увійти через Keycloak</a>
+</div>
+<div sec:authorize="isAuthenticated()">
+  <p>Вітаємо, <b sec:authentication="name"></b>!</p>
+  <a class="btn" th:href="@{/books}">Перейти до списку книг</a>
+</div>
+</body>
+</html>

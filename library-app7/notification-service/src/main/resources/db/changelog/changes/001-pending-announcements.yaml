@@ -1,0 +1,41 @@
+# ЛР7 — власні дані notification-service: черга книг для дайджесту новинок.
+databaseChangeLog:
+  - changeSet:
+      id: 001-pending-announcements
+      author: student
+      changes:
+        - createTable:
+            tableName: pending_announcements
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: book_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uq_pending_announcements_book
+              - column:
+                  name: title
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: author
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: received_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: announced_at
+                  type: TIMESTAMP WITH TIME ZONE

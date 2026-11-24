@@ -1,0 +1,41 @@
+# ЛР7 — notification-service: власний порт і власна БД
+server:
+  port: 8081
+
+spring:
+  application:
+    name: notification-service
+  datasource:
+    url: ${NOTIFICATION_DB_URL:jdbc:postgresql://localhost:5433/notification}
+    username: library
+    password: library
+  jpa:
+    hibernate:
+      ddl-auto: validate        # схемою керує тільки Liquibase
+    open-in-view: false
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+  quartz:
+    job-store-type: jdbc
+    jdbc:
+      initialize-schema: never      # таблиці QRTZ_* створює Liquibase (002-quartz-tables.yaml)
+    overwrite-existing-jobs: true
+    wait-for-jobs-to-complete-on-shutdown: true
+    properties:
+      org.quartz.scheduler.instanceName: notification-scheduler
+      org.quartz.scheduler.instanceId: AUTO
+      org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
+      org.quartz.jobStore.tablePrefix: QRTZ_
+      org.quartz.jobStore.useProperties: true
+      org.quartz.jobStore.isClustered: true
+      org.quartz.jobStore.misfireThreshold: 60000
+      org.quartz.threadPool.threadCount: 2
+
+notification:
+  internal-api-key: ${INTERNAL_API_KEY:change-me-internal-key}   # той самий, що library.services.notification-api-key у catalog-service
+  subscribers: readers@library.local
+  scheduling:
+    digest-interval-minutes: 60
+  simulation:
+    latency-ms: 1000          # «повільність» SMTP
+    mail-failure: false       # true -> SMTP «падає», видно повтори дайджесту з обмеженням

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8">
+  <title>Books</title>
+  <style>
+    body{font-family:sans-serif;max-width:1000px;margin:40px auto}
+    table{border-collapse:collapse;width:100%} td,th{border:1px solid #ccc;padding:6px 10px;text-align:left}
+    form.inline{display:inline}
+  </style>
+</head>
+<body>
+<h1>Книги</h1>
+<p>
+  Користувач: <b sec:authentication="name"></b>
+  (ролі: <span sec:authentication="authorities"></span>)
+  <form class="inline" th:action="@{/logout}" method="post"><button type="submit">Вийти</button></form>
+</p>
+<p><a th:href="@{/books/new}">+ Додати книгу</a></p>
+<table>
+  <thead>
+  <tr><th>ID</th><th>Назва</th><th>Автор</th><th>ISBN</th><th>Рік</th><th>Опис</th><th>Дії</th></tr>
+  </thead>
+  <tbody>
+  <tr th:each="b : ${books}">
+    <td th:text="${b.id}"></td>
+    <td th:text="${b.title}"></td>
+    <td th:text="${b.author}"></td>
+    <td th:text="${b.isbn}"></td>
+    <td th:text="${b.publishedYear}"></td>
+    <td th:text="${b.description}"></td>
+    <td>
+      <a th:href="@{/books/{id}/edit(id=${b.id})}">Редагувати</a>
+      <form class="inline" th:action="@{/books/{id}/delete(id=${b.id})}" method="post"
+            onsubmit="return confirm('Видалити? (дозволено лише ADMIN)')">
+        <button type="submit">Видалити (ADMIN)</button>
+      </form>
+    </td>
+  </tr>
+  </tbody>
+</table>
+</body>
+</html>

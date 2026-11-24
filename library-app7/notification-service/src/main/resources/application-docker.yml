@@ -1,0 +1,4 @@
+# ЛР7 — профіль для контейнера: БД за ім'ям сервісу в docker-compose
+spring:
+  datasource:
+    url: jdbc:postgresql://postgres:5432/notification
